@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/AuthProvider";
@@ -25,10 +26,12 @@ export default function DashboardHeader({
     <header className="sticky top-0 z-20 border-b border-clay/60 bg-cream/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-coral text-base font-extrabold text-white shadow-soft">
-            E
-          </span>
-          <span className="text-lg font-extrabold">EduAdapt</span>
+          <Image
+            src="/ChatGPT_Image_May_14__2026__06_33_41_PM-removebg-preview.png"
+            alt="EduAdapt"
+            width={32}
+            height={32}
+          />
         </Link>
 
         <div className="flex items-center gap-3">

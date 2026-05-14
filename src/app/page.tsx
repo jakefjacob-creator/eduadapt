@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AuthAware } from "@/components/AuthAware";
 
@@ -9,12 +10,15 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute top-64 -left-24 h-80 w-80 rounded-full bg-sage-light/40 blur-3xl" />
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-coral text-lg font-extrabold text-white shadow-soft">
-            E
-          </span>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Image
+            src="/ChatGPT_Image_May_14__2026__06_33_41_PM-removebg-preview.png"
+            alt="EduAdapt"
+            width={32}
+            height={32}
+          />
           <span className="text-xl font-extrabold">EduAdapt</span>
-        </div>
+        </Link>
         <nav className="flex items-center gap-3">
           <AuthAware
             signedOut={
