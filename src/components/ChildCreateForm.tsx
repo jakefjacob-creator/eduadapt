@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { authFetch } from "@/lib/api";
 
 type Step = 0 | 1 | 2;
 
@@ -96,7 +97,7 @@ export default function ChildCreateForm() {
       const file = fileRef.current?.files?.[0];
       if (file) form.set("ehcp", file);
 
-      const res = await fetch("/api/children", {
+      const res = await authFetch("/api/children", {
         method: "POST",
         body: form,
       });

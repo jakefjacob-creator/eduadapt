@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess } from "@/lib/auth";
+import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generatePdf } from "@/lib/pdf";
 import { uploadBuffer, storageKey } from "@/lib/storage";
@@ -7,7 +7,7 @@ import type { DocumentRow } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-async function loadDocWithAccess(id: string) {
+async function loadDocWithAccess(id: string, userId: string) {
   const { data: doc } = await supabaseAdmin
     .from("documents")
     .select("*")
@@ -15,7 +15,7 @@ async function loadDocWithAccess(id: string) {
     .maybeSingle();
   if (!doc) return { error: "Document not found", status: 404 as const };
 
-  const access = await getChildAccess(doc.child_id);
+  const access = await getChildAccess(doc.child_id, userId);
   if (!access) return { error: "Access denied", status: 403 as const };
 
   return { doc: doc as DocumentRow, access };
@@ -23,10 +23,15 @@ async function loadDocWithAccess(id: string) {
 
 /** Fetch a single document. */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const result = await loadDocWithAccess(params.id);
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  const result = await loadDocWithAccess(params.id, userId);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
@@ -38,7 +43,12 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const result = await loadDocWithAccess(params.id);
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  const result = await loadDocWithAccess(params.id, userId);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

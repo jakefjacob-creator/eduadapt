@@ -1,12 +1,12 @@
 -- ════════════════════════════════════════════════════════════════
 -- EduAdapt — Supabase schema
--- Run this in the Supabase SQL editor (Dashboard → SQL → New query).
+-- Uses Supabase Auth (auth.users) for user identity.
 -- ════════════════════════════════════════════════════════════════
 
 -- ── Users ───────────────────────────────────────────────────────
--- id is the Clerk user id (text), kept in sync on first request.
+-- id references auth.users (Supabase Auth) for identity.
 create table if not exists public.users (
-  id          text primary key,
+  id          uuid primary key references auth.users(id) on delete cascade,
   email       text not null,
   name        text,
   role        text not null check (role in ('teacher', 'parent')),
@@ -23,7 +23,7 @@ create table if not exists public.children (
   ehcp_summary     jsonb,                      -- structured needs (Claude)
   quiz_results     jsonb,                      -- onboarding quiz answers
   learning_profile jsonb,                      -- builds over time from feedback
-  created_by       text references public.users(id),
+  created_by       uuid references public.users(id),
   created_at       timestamptz not null default now()
 );
 
@@ -33,7 +33,7 @@ create table if not exists public.children (
 create table if not exists public.child_members (
   id         uuid primary key default gen_random_uuid(),
   child_id   uuid not null references public.children(id) on delete cascade,
-  user_id    text not null references public.users(id) on delete cascade,
+  user_id    uuid not null references public.users(id) on delete cascade,
   role       text not null check (role in ('teacher', 'parent')),
   created_at timestamptz not null default now(),
   unique (child_id, user_id)
@@ -43,7 +43,7 @@ create table if not exists public.child_members (
 create table if not exists public.documents (
   id                 uuid primary key default gen_random_uuid(),
   child_id           uuid not null references public.children(id) on delete cascade,
-  uploaded_by        text references public.users(id),
+  uploaded_by        uuid references public.users(id),
   title              text,
   original_filename  text,
   original_file_url  text,                     -- Supabase Storage URL
@@ -58,7 +58,7 @@ create table if not exists public.documents (
   error_message      text,
   feedback_score     int check (feedback_score between 1 and 5),
   feedback_note      text,
-  feedback_by        text references public.users(id),
+  feedback_by        uuid references public.users(id),
   feedback_at        timestamptz,
   created_at         timestamptz not null default now()
 );
@@ -67,7 +67,7 @@ create table if not exists public.documents (
 create table if not exists public.messages (
   id         uuid primary key default gen_random_uuid(),
   child_id   uuid not null references public.children(id) on delete cascade,
-  sender_id  text not null references public.users(id),
+  sender_id  uuid not null references public.users(id),
   content    text not null,
   created_at timestamptz not null default now()
 );
@@ -79,7 +79,7 @@ create table if not exists public.invites (
   email      text not null,
   token      text not null unique,
   role       text not null default 'parent' check (role in ('teacher', 'parent')),
-  invited_by text references public.users(id),
+  invited_by uuid references public.users(id),
   accepted   boolean not null default false,
   created_at timestamptz not null default now()
 );
@@ -102,6 +102,12 @@ alter table public.child_members  enable row level security;
 alter table public.documents      enable row level security;
 alter table public.messages       enable row level security;
 alter table public.invites        enable row level security;
+
+-- Authenticated users can read their own profile
+create policy "Users can read own profile"
+  on public.users for select
+  to authenticated
+  using (auth.uid() = id);
 
 -- ── Storage bucket ──────────────────────────────────────────────
 -- Holds uploaded source files and generated PDFs.

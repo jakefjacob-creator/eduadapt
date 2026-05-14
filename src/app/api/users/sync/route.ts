@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureUser, getAuthUserId } from "@/lib/auth";
+import { ensureUser, getAuthUserIdFromRequest } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 
 /**
@@ -7,7 +7,7 @@ import type { Role } from "@/lib/types";
  * Called from the onboarding screen with the chosen role.
  */
 export async function POST(req: NextRequest) {
-  const userId = getAuthUserId();
+  const userId = await getAuthUserIdFromRequest(req);
   if (!userId) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const user = await ensureUser(role);
+    const user = await ensureUser(userId, role);
     if (!user) {
       return NextResponse.json(
         { error: "Choose a role to finish setting up your account." },

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { authFetch } from "@/lib/api";
 
 export default function DocumentUpload({
   childId,
@@ -28,7 +29,7 @@ export default function DocumentUpload({
       const form = new FormData();
       form.set("child_id", childId);
       form.set("file", file);
-      const res = await fetch("/api/documents", {
+      const res = await authFetch("/api/documents", {
         method: "POST",
         body: form,
       });

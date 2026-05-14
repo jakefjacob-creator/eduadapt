@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { authFetch } from "@/lib/api";
 import type { Role } from "@/lib/types";
 
 export default function RoleSelect() {
@@ -15,7 +16,7 @@ export default function RoleSelect() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/users/sync", {
+      const res = await authFetch("/api/users/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),

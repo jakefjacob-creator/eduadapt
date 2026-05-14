@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { getChildAccess } from "@/lib/auth";
+import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
 
@@ -19,6 +19,11 @@ function appUrl() {
  * shareable link the inviter can email.
  */
 export async function POST(req: NextRequest) {
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const childId = typeof body.child_id === "string" ? body.child_id : null;
   const email =
@@ -32,7 +37,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const access = await getChildAccess(childId);
+  const access = await getChildAccess(childId, userId);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
@@ -74,11 +79,16 @@ export async function POST(req: NextRequest) {
 
 /** List invites for a child. */
 export async function GET(req: NextRequest) {
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const childId = req.nextUrl.searchParams.get("child_id");
   if (!childId) {
     return NextResponse.json({ error: "child_id is required" }, { status: 400 });
   }
-  const access = await getChildAccess(childId);
+  const access = await getChildAccess(childId, userId);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }

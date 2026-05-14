@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+import { SupabaseProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -21,19 +21,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#E8826B",
-          colorBackground: "#FBF7F0",
-          colorText: "#3D3530",
-          borderRadius: "1rem",
-        },
-      }}
-    >
+    <SupabaseProvider>
       <html lang="en" className={nunito.variable}>
         <body className="min-h-screen font-sans">{children}</body>
       </html>
-    </ClerkProvider>
+    </SupabaseProvider>
   );
 }

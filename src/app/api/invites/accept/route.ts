@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureUser, getAuthUserId } from "@/lib/auth";
+import { ensureUser, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
  * mark the invite used.
  */
 export async function POST(req: NextRequest) {
-  const userId = getAuthUserId();
+  const userId = await getAuthUserIdFromRequest(req);
   if (!userId) {
     return NextResponse.json(
       { error: "Please sign in to accept this invite." },
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   // Make sure the user has an app row. If they're new, adopt the
   // invited role; existing users keep whatever role they already have.
-  const user = await ensureUser(invite.role);
+  const user = await ensureUser(userId, invite.role);
   if (!user) {
     return NextResponse.json(
       { error: "Could not set up your account." },

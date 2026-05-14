@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { AuthAware } from "@/components/AuthAware";
 
 export default function LandingPage() {
   return (
@@ -16,19 +16,23 @@ export default function LandingPage() {
           <span className="text-xl font-extrabold">EduAdapt</span>
         </div>
         <nav className="flex items-center gap-3">
-          <SignedOut>
-            <Link href="/sign-in" className="btn-ghost">
-              Sign in
-            </Link>
-            <Link href="/sign-up" className="btn-primary">
-              Get started
-            </Link>
-          </SignedOut>
-          <SignedIn>
-            <Link href="/dashboard" className="btn-primary">
-              Go to dashboard
-            </Link>
-          </SignedIn>
+          <AuthAware
+            signedOut={
+              <>
+                <Link href="/sign-in" className="btn-ghost">
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className="btn-primary">
+                  Get started
+                </Link>
+              </>
+            }
+            signedIn={
+              <Link href="/dashboard" className="btn-primary">
+                Go to dashboard
+              </Link>
+            }
+          />
         </nav>
       </header>
 
@@ -49,19 +53,23 @@ export default function LandingPage() {
               piece of feedback.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <SignedOut>
-                <Link href="/sign-up" className="btn-primary text-base">
-                  Create your free account
-                </Link>
-                <Link href="/sign-in" className="btn-ghost text-base">
-                  I already have one
-                </Link>
-              </SignedOut>
-              <SignedIn>
-                <Link href="/dashboard" className="btn-primary text-base">
-                  Open your dashboard
-                </Link>
-              </SignedIn>
+              <AuthAware
+                signedOut={
+                  <>
+                    <Link href="/sign-up" className="btn-primary text-base">
+                      Create your free account
+                    </Link>
+                    <Link href="/sign-in" className="btn-ghost text-base">
+                      I already have one
+                    </Link>
+                  </>
+                }
+                signedIn={
+                  <Link href="/dashboard" className="btn-primary text-base">
+                    Open your dashboard
+                  </Link>
+                }
+              />
             </div>
           </div>
 

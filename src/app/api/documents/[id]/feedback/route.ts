@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess } from "@/lib/auth";
+import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { updateLearningProfile, type FeedbackEntry } from "@/lib/claude";
 import type { Child, DocumentRow } from "@/lib/types";
@@ -16,6 +16,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const { data: doc } = await supabaseAdmin
     .from("documents")
     .select("*")
@@ -25,7 +30,7 @@ export async function POST(
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
-  const access = await getChildAccess(doc.child_id);
+  const access = await getChildAccess(doc.child_id, userId);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }

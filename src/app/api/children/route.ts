@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDbUser } from "@/lib/auth";
+import { getDbUser, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { extractFromFile } from "@/lib/extract";
 import { extractEhcpNeeds } from "@/lib/claude";
@@ -12,7 +12,12 @@ export const maxDuration = 60;
 /** Create a child profile, the creator's membership, and (optionally)
  *  extract structured needs from an uploaded EHCP. */
 export async function POST(req: NextRequest) {
-  const user = await getDbUser();
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  const user = await getDbUser(userId);
   if (!user) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -78,7 +83,6 @@ export async function POST(req: NextRequest) {
     .from("child_members")
     .insert({ child_id: child.id, user_id: user.id, role: user.role });
   if (memberErr) {
-    // Roll back so we don't leave an orphaned child.
     await supabaseAdmin.from("children").delete().eq("id", child.id);
     return NextResponse.json({ error: memberErr.message }, { status: 500 });
   }
@@ -117,7 +121,6 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", child.id);
 
-      // keep the source file reference available via a document row
       await supabaseAdmin.from("documents").insert({
         child_id: child.id,
         uploaded_by: user.id,
@@ -132,7 +135,6 @@ export async function POST(req: NextRequest) {
           "Original EHCP on file. Its needs are extracted into this child's profile and inform every adaptation.",
       });
     } catch (err) {
-      // The child is still created — just flag that the EHCP needs another go.
       ehcpWarning =
         err instanceof Error
           ? err.message

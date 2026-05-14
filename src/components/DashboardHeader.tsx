@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useSupabase } from "@/components/AuthProvider";
 import type { Role } from "@/lib/types";
 
 export default function DashboardHeader({
@@ -11,6 +12,15 @@ export default function DashboardHeader({
   name: string | null;
   role: Role;
 }) {
+  const router = useRouter();
+  const { supabase } = useSupabase();
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-clay/60 bg-cream/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
@@ -28,7 +38,12 @@ export default function DashboardHeader({
             </span>
             <span className="block text-xs capitalize text-muted">{role}</span>
           </span>
-          <UserButton afterSignOutUrl="/" />
+          <button
+            onClick={signOut}
+            className="btn-ghost text-sm"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </header>

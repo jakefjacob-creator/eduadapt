@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { authFetch } from "@/lib/api";
 
 const SCALE = [
   { score: 1, label: "Didn't work" },
@@ -37,7 +38,7 @@ export default function FeedbackForm({
     setError(null);
     setDone(false);
     try {
-      const res = await fetch(`/api/documents/${documentId}/feedback`, {
+      const res = await authFetch(`/api/documents/${documentId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score, note }),

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ensureUser } from "@/lib/auth";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -7,8 +8,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // ensureUser() returns null if the Clerk user hasn't picked a role yet.
-  const user = await ensureUser();
+  const headersList = headers();
+  const userId = headersList.get("x-user-id");
+
+  if (!userId) redirect("/sign-in");
+
+  // ensureUser() returns null if the user hasn't picked a role yet.
+  const user = await ensureUser(userId);
   if (!user) redirect("/onboarding");
 
   return (

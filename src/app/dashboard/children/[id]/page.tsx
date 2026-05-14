@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { getChildAccess } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -33,7 +34,11 @@ export default async function ChildPage({
   params: { id: string };
   searchParams: { notice?: string };
 }) {
-  const access = await getChildAccess(params.id);
+  const headersList = headers();
+  const userId = headersList.get("x-user-id");
+  if (!userId) notFound();
+
+  const access = await getChildAccess(params.id, userId);
   if (!access) notFound();
   const { child, user } = access;
 

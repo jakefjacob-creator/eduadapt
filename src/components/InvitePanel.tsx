@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { authFetch } from "@/lib/api";
 import type { Invite, Role } from "@/lib/types";
 
 interface Member {
@@ -34,7 +35,7 @@ export default function InvitePanel({
     setError(null);
     setLastLink(null);
     try {
-      const res = await fetch("/api/invites", {
+      const res = await authFetch("/api/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ child_id: childId, email, role }),

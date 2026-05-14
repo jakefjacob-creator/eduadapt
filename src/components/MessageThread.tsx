@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { authFetch } from "@/lib/api";
 import type { Message, Role } from "@/lib/types";
 
 interface Member {
@@ -38,7 +39,7 @@ export default function MessageThread({
     setSending(true);
     setError(null);
     try {
-      const res = await fetch("/api/messages", {
+      const res = await authFetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ child_id: childId, content }),

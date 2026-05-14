@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { authFetch } from "@/lib/api";
 
 export default function DocumentEditor({
   documentId,
@@ -29,7 +30,7 @@ export default function DocumentEditor({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/documents/${documentId}`, {
+      const res = await authFetch(`/api/documents/${documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, output_text: content }),

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getDbUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Child, Role } from "@/lib/types";
@@ -40,8 +42,12 @@ async function getChildren(userId: string): Promise<ChildCard[]> {
 }
 
 export default async function DashboardPage() {
-  const user = await getDbUser();
-  if (!user) return null;
+  const headersList = headers();
+  const userId = headersList.get("x-user-id");
+  if (!userId) redirect("/sign-in");
+
+  const user = await getDbUser(userId);
+  if (!user) redirect("/onboarding");
 
   const children = await getChildren(user.id);
 

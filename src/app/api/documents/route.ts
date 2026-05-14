@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess } from "@/lib/auth";
+import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { extractFromFile } from "@/lib/extract";
 import { adaptDocument } from "@/lib/claude";
@@ -22,6 +22,11 @@ const TYPE_LABEL: Record<string, string> = {
  * support document alongside it.
  */
 export async function POST(req: NextRequest) {
+  const userId = await getAuthUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   let form: FormData;
   try {
     form = await req.formData();
@@ -39,7 +44,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const access = await getChildAccess(childId);
+  const access = await getChildAccess(childId, userId);
   if (!access) {
     return NextResponse.json(
       { error: "You don't have access to this child." },
@@ -55,7 +60,6 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     extracted = await extractFromFile(buffer, file.type, file.name);
 
-    // Upload the original file for the activity feed / records.
     originalUrl = await uploadBuffer(
       storageKey(childId, "source", file.name),
       buffer,
