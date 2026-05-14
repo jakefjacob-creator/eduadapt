@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "./supabase-client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Make an authenticated API request. Automatically includes the
@@ -8,7 +9,7 @@ export async function authFetch(
   input: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const supabase = getSupabaseBrowserClient();
+  const supabase = getSupabaseBrowserClient() as SupabaseClient;
   const {
     data: { session },
   } = await supabase.auth.getSession();

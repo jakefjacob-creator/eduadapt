@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getChildAccess } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getServerClient } from "@/lib/supabase";
 import DocumentEditor from "@/components/DocumentEditor";
 import FeedbackForm from "@/components/FeedbackForm";
 import type { DocumentRow } from "@/lib/types";
@@ -27,12 +27,14 @@ export default async function DocumentPage({
 }) {
   const headersList = headers();
   const userId = headersList.get("x-user-id");
+  const accessToken = headersList.get("x-access-token");
   if (!userId) notFound();
 
-  const access = await getChildAccess(params.id, userId);
+  const access = await getChildAccess(params.id, userId, accessToken ?? undefined);
   if (!access) notFound();
 
-  const { data: doc } = await supabaseAdmin
+  const client = getServerClient(accessToken ?? undefined);
+  const { data: doc } = await client
     .from("documents")
     .select("*")
     .eq("id", params.docId)
@@ -42,8 +44,7 @@ export default async function DocumentPage({
 
   const document = doc as DocumentRow;
 
-  // Any support documents generated alongside this one.
-  const { data: relatedData } = await supabaseAdmin
+  const { data: relatedData } = await client
     .from("documents")
     .select("id, title, document_type")
     .eq("parent_document_id", document.id);
@@ -74,7 +75,6 @@ export default async function DocumentPage({
         )}
       </div>
 
-      {/* Processing / error states */}
       {document.status === "processing" && (
         <div className="card mt-6 grid place-items-center p-12 text-center">
           <div className="text-4xl">⏳</div>
@@ -108,7 +108,6 @@ export default async function DocumentPage({
         </div>
       )}
 
-      {/* Ready */}
       {document.status === "ready" && (
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
@@ -144,7 +143,6 @@ export default async function DocumentPage({
               </div>
             )}
 
-            {/* Original source */}
             {document.output_text && (
               <details className="card p-6">
                 <summary className="cursor-pointer text-lg font-bold">
@@ -169,7 +167,6 @@ export default async function DocumentPage({
             )}
           </div>
 
-          {/* Side column */}
           <div className="space-y-6">
             {document.adaptation_notes && (
               <div className="card p-6">

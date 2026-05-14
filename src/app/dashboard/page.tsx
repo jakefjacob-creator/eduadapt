@@ -2,7 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDbUser } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getServerClient } from "@/lib/supabase";
 import type { Child, Role } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +12,9 @@ interface ChildCard extends Child {
   documentCount: number;
 }
 
-async function getChildren(userId: string): Promise<ChildCard[]> {
-  const { data: memberships } = await supabaseAdmin
+async function getChildren(userId: string, accessToken: string): Promise<ChildCard[]> {
+  const client = getServerClient(accessToken);
+  const { data: memberships } = await client
     .from("child_members")
     .select("role, child_id, children(*)")
     .eq("user_id", userId)
@@ -22,7 +23,7 @@ async function getChildren(userId: string): Promise<ChildCard[]> {
   if (!memberships?.length) return [];
 
   const childIds = memberships.map((m) => m.child_id);
-  const { data: docs } = await supabaseAdmin
+  const { data: docs } = await client
     .from("documents")
     .select("child_id")
     .in("child_id", childIds);
@@ -44,12 +45,13 @@ async function getChildren(userId: string): Promise<ChildCard[]> {
 export default async function DashboardPage() {
   const headersList = headers();
   const userId = headersList.get("x-user-id");
-  if (!userId) redirect("/sign-in");
+  const accessToken = headersList.get("x-access-token");
+  if (!userId || !accessToken) redirect("/sign-in");
 
-  const user = await getDbUser(userId);
+  const user = await getDbUser(userId, accessToken);
   if (!user) redirect("/onboarding");
 
-  const children = await getChildren(user.id);
+  const children = await getChildren(user.id, accessToken);
 
   return (
     <div>

@@ -27,7 +27,11 @@ export default function SignInPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(
+        authError.message === "Invalid login credentials"
+          ? "Invalid email or password. Please try again."
+          : authError.message,
+      );
       setLoading(false);
       return;
     }
@@ -57,6 +61,7 @@ export default function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
                 placeholder="you@example.com"
+                autoComplete="email"
               />
             </div>
             <div>
@@ -71,6 +76,7 @@ export default function SignInPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
                 placeholder="Your password"
+                autoComplete="current-password"
               />
             </div>
           </div>

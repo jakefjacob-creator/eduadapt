@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getChildAccess, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { extractFromFile } from "@/lib/extract";
 import { adaptDocument } from "@/lib/claude";
@@ -16,14 +16,9 @@ const TYPE_LABEL: Record<string, string> = {
   support_document: "Support document",
 };
 
-/**
- * Upload a document, adapt it for the child with Claude, render the
- * result to a downloadable PDF, and (for lesson plans) generate a
- * support document alongside it.
- */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -44,7 +39,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const access = await getChildAccess(childId, userId);
+  const access = await getChildAccess(childId, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json(
       { error: "You don't have access to this child." },
@@ -53,7 +48,6 @@ export async function POST(req: NextRequest) {
   }
   const { user, child } = access;
 
-  // ── Extract source content ────────────────────────────
   let extracted: Awaited<ReturnType<typeof extractFromFile>>;
   let originalUrl: string;
   try {
@@ -77,7 +71,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Create the document row up front (status: processing) ──
   const { data: doc, error: insertErr } = await supabaseAdmin
     .from("documents")
     .insert({
@@ -99,7 +92,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Adapt with Claude, render PDF, save ───────────────
   try {
     const result = await adaptDocument({
       child: child as Child,
@@ -139,7 +131,6 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", doc.id);
 
-    // ── Support document alongside a lesson plan ────────
     if (result.support_document) {
       const sd = result.support_document;
       const sdPdf = await generatePdf({

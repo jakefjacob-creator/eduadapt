@@ -7,10 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  type Session,
-  type SupabaseClient,
-} from "@supabase/supabase-js";
+import { type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 const SupabaseContext = createContext<{
@@ -42,17 +39,17 @@ export function useAuth() {
 }
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const [supabase] = useState(() => getSupabaseBrowserClient());
+  const [supabase] = useState(() => getSupabaseBrowserClient() as SupabaseClient);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((_event: string, s: Session | null) => {
       setSession(s);
     });
 

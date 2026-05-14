@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDbUser, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getDbUser, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { extractFromFile } from "@/lib/extract";
 import { extractEhcpNeeds } from "@/lib/claude";
@@ -9,15 +9,13 @@ import type { QuizResults } from "@/lib/types";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/** Create a child profile, the creator's membership, and (optionally)
- *  extract structured needs from an uploaded EHCP. */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const user = await getDbUser(userId);
+  const user = await getDbUser(auth.userId, auth.accessToken);
   if (!user) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -59,7 +57,6 @@ export async function POST(req: NextRequest) {
   };
   const quizProvided = Object.values(quiz).some((v) => v.length > 0);
 
-  // ── Create the child + creator membership ─────────────
   const { data: child, error: childErr } = await supabaseAdmin
     .from("children")
     .insert({
@@ -87,7 +84,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: memberErr.message }, { status: 500 });
   }
 
-  // ── Optional EHCP processing ──────────────────────────
   const ehcpFile = form.get("ehcp") as File | null;
   let ehcpWarning: string | null = null;
 

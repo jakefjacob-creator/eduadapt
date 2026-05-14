@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getChildAccess } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getServerClient } from "@/lib/supabase";
 import DocumentUpload from "@/components/DocumentUpload";
 import MessageThread from "@/components/MessageThread";
 import InvitePanel from "@/components/InvitePanel";
@@ -36,29 +36,31 @@ export default async function ChildPage({
 }) {
   const headersList = headers();
   const userId = headersList.get("x-user-id");
+  const accessToken = headersList.get("x-access-token");
   if (!userId) notFound();
 
-  const access = await getChildAccess(params.id, userId);
+  const access = await getChildAccess(params.id, userId, accessToken ?? undefined);
   if (!access) notFound();
   const { child, user } = access;
 
+  const client = getServerClient(accessToken ?? undefined);
   const [{ data: docData }, { data: msgData }, { data: memberData }, { data: inviteData }] =
     await Promise.all([
-      supabaseAdmin
+      client
         .from("documents")
         .select("*")
         .eq("child_id", child.id)
         .order("created_at", { ascending: false }),
-      supabaseAdmin
+      client
         .from("messages")
         .select("*")
         .eq("child_id", child.id)
         .order("created_at", { ascending: true }),
-      supabaseAdmin
+      client
         .from("child_members")
         .select("role, users(id, name)")
         .eq("child_id", child.id),
-      supabaseAdmin
+      client
         .from("invites")
         .select("*")
         .eq("child_id", child.id)
@@ -77,7 +79,6 @@ export default async function ChildPage({
   const quiz = child.quiz_results;
   const lp = child.learning_profile;
 
-  // Activity feed — uploads, adaptations, feedback, messages combined.
   type Event = { at: string; icon: string; text: string };
   const events: Event[] = [];
   for (const d of documents) {
@@ -117,7 +118,6 @@ export default async function ChildPage({
         ← All children
       </Link>
 
-      {/* Header */}
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-sage text-2xl font-extrabold text-white shadow-soft">
           {child.name.charAt(0).toUpperCase()}
@@ -142,7 +142,6 @@ export default async function ChildPage({
         </p>
       )}
 
-      {/* Profile summary */}
       <section className="card mt-6 p-6">
         <h2 className="text-lg font-bold">Learning profile</h2>
         <p className="mt-1 text-sm text-muted">
@@ -151,7 +150,6 @@ export default async function ChildPage({
         </p>
 
         <div className="mt-4 grid gap-5 md:grid-cols-3">
-          {/* EHCP */}
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wide text-coral-dark">
               EHCP needs
@@ -190,7 +188,6 @@ export default async function ChildPage({
             )}
           </div>
 
-          {/* Quiz */}
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wide text-sage-dark">
               Onboarding quiz
@@ -221,7 +218,6 @@ export default async function ChildPage({
             )}
           </div>
 
-          {/* Learning profile */}
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
               Refined from feedback
@@ -261,12 +257,10 @@ export default async function ChildPage({
         </div>
       </section>
 
-      {/* Main grid */}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <DocumentUpload childId={child.id} childName={child.name} />
 
-          {/* Documents */}
           <div className="card p-6">
             <h2 className="text-lg font-bold">
               Documents{" "}
@@ -333,7 +327,6 @@ export default async function ChildPage({
           </div>
         </div>
 
-        {/* Side column */}
         <div className="space-y-6">
           <InvitePanel
             childId={child.id}
@@ -342,7 +335,6 @@ export default async function ChildPage({
             initialInvites={invites}
           />
 
-          {/* Activity feed */}
           <div className="card p-6">
             <h2 className="text-lg font-bold">Activity</h2>
             {feed.length === 0 ? (
@@ -371,7 +363,6 @@ export default async function ChildPage({
         </div>
       </div>
 
-      {/* Messages */}
       <section className="mt-6">
         <MessageThread
           childId={child.id}

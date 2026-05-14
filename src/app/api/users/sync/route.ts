@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureUser, getAuthUserIdFromRequest } from "@/lib/auth";
+import { ensureUser, getAuthFromRequest } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 
-/**
- * Create or refresh the current user's row in the `users` table.
- * Called from the onboarding screen with the chosen role.
- */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -23,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const user = await ensureUser(userId, role);
+    const user = await ensureUser(auth.userId, role, auth.accessToken);
     if (!user) {
       return NextResponse.json(
         { error: "Choose a role to finish setting up your account." },

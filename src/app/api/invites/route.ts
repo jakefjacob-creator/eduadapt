@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getChildAccess, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
 
@@ -13,14 +13,9 @@ function appUrl() {
   );
 }
 
-/**
- * Create an invite so a member can share a child's dashboard with
- * someone else (typically a teacher inviting the parent). Returns a
- * shareable link the inviter can email.
- */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -37,12 +32,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const access = await getChildAccess(childId, userId);
+  const access = await getChildAccess(childId, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
-  // Reuse an outstanding invite for the same email if one exists.
   const { data: existing } = await supabaseAdmin
     .from("invites")
     .select("*")
@@ -77,10 +71,9 @@ export async function POST(req: NextRequest) {
   });
 }
 
-/** List invites for a child. */
 export async function GET(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -88,7 +81,7 @@ export async function GET(req: NextRequest) {
   if (!childId) {
     return NextResponse.json({ error: "child_id is required" }, { status: 400 });
   }
-  const access = await getChildAccess(childId, userId);
+  const access = await getChildAccess(childId, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }

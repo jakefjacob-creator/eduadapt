@@ -10,11 +10,12 @@ export default async function DashboardLayout({
 }) {
   const headersList = headers();
   const userId = headersList.get("x-user-id");
+  const accessToken = headersList.get("x-access-token");
 
   if (!userId) redirect("/sign-in");
 
   // ensureUser() returns null if the user hasn't picked a role yet.
-  const user = await ensureUser(userId);
+  const user = await ensureUser(userId, undefined, accessToken ?? undefined);
   if (!user) redirect("/onboarding");
 
   return (

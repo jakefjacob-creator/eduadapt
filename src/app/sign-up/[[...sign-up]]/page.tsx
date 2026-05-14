@@ -31,7 +31,11 @@ export default function SignUpPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(
+        authError.message.includes("already registered")
+          ? "An account with this email already exists. Try signing in instead."
+          : authError.message,
+      );
       setLoading(false);
       return;
     }
@@ -61,6 +65,7 @@ export default function SignUpPage() {
                 onChange={(e) => setName(e.target.value)}
                 className="input"
                 placeholder="Your name"
+                autoComplete="name"
               />
             </div>
             <div>
@@ -75,6 +80,7 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
                 placeholder="you@example.com"
+                autoComplete="email"
               />
             </div>
             <div>
@@ -90,6 +96,7 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
                 placeholder="At least 6 characters"
+                autoComplete="new-password"
               />
             </div>
           </div>

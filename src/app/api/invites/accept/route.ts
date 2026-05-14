@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureUser, getAuthUserIdFromRequest } from "@/lib/auth";
+import { ensureUser, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
-/**
- * Accept an invite: ensure the signed-in user exists (with the invited
- * role if they're brand new), add them as a member of the child, and
- * mark the invite used.
- */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json(
       { error: "Please sign in to accept this invite." },
       { status: 401 },
@@ -37,9 +32,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Make sure the user has an app row. If they're new, adopt the
-  // invited role; existing users keep whatever role they already have.
-  const user = await ensureUser(userId, invite.role);
+  const user = await ensureUser(auth.userId, invite.role, auth.accessToken);
   if (!user) {
     return NextResponse.json(
       { error: "Could not set up your account." },
@@ -47,7 +40,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Add membership (idempotent — unique on child_id + user_id).
   const { error: memberErr } = await supabaseAdmin
     .from("child_members")
     .upsert(

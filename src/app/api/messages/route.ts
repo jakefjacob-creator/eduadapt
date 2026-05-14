@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getChildAccess, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
-/** Post a message to a child's shared teacher ↔ parent thread. */
 export async function POST(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const access = await getChildAccess(childId, userId);
+  const access = await getChildAccess(childId, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
@@ -50,10 +49,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ message: data });
 }
 
-/** Fetch the message thread for a child. */
 export async function GET(req: NextRequest) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -62,7 +60,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "child_id is required" }, { status: 400 });
   }
 
-  const access = await getChildAccess(childId, userId);
+  const access = await getChildAccess(childId, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }

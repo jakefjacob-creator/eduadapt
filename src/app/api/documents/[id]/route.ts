@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getChildAccess, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generatePdf } from "@/lib/pdf";
 import { uploadBuffer, storageKey } from "@/lib/storage";
@@ -7,7 +7,7 @@ import type { DocumentRow } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-async function loadDocWithAccess(id: string, userId: string) {
+async function loadDocWithAccess(id: string, userId: string, accessToken: string) {
   const { data: doc } = await supabaseAdmin
     .from("documents")
     .select("*")
@@ -15,40 +15,38 @@ async function loadDocWithAccess(id: string, userId: string) {
     .maybeSingle();
   if (!doc) return { error: "Document not found", status: 404 as const };
 
-  const access = await getChildAccess(doc.child_id, userId);
+  const access = await getChildAccess(doc.child_id, userId, accessToken);
   if (!access) return { error: "Access denied", status: 403 as const };
 
   return { doc: doc as DocumentRow, access };
 }
 
-/** Fetch a single document. */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const result = await loadDocWithAccess(params.id, userId);
+  const result = await loadDocWithAccess(params.id, auth.userId, auth.accessToken);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
   return NextResponse.json({ document: result.doc });
 }
 
-/** Edit a generated document's content and re-render its PDF. */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const result = await loadDocWithAccess(params.id, userId);
+  const result = await loadDocWithAccess(params.id, auth.userId, auth.accessToken);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

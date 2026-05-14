@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChildAccess, getAuthUserIdFromRequest } from "@/lib/auth";
+import { getChildAccess, getAuthFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { updateLearningProfile, type FeedbackEntry } from "@/lib/claude";
 import type { Child, DocumentRow } from "@/lib/types";
@@ -7,17 +7,12 @@ import type { Child, DocumentRow } from "@/lib/types";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/**
- * Record a 1-5 rating + note against a document, then refine the
- * child's learning profile from the full feedback history so future
- * adaptations improve.
- */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const userId = await getAuthUserIdFromRequest(req);
-  if (!userId) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -30,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
-  const access = await getChildAccess(doc.child_id, userId);
+  const access = await getChildAccess(doc.child_id, auth.userId, auth.accessToken);
   if (!access) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
@@ -47,7 +42,6 @@ export async function POST(
     );
   }
 
-  // ── Save feedback on the document ─────────────────────
   const { error: updateErr } = await supabaseAdmin
     .from("documents")
     .update({
@@ -61,7 +55,6 @@ export async function POST(
     return NextResponse.json({ error: updateErr.message }, { status: 500 });
   }
 
-  // ── Refine the learning profile from all feedback ─────
   let learningProfileUpdated = false;
   try {
     const { data: rated } = await supabaseAdmin

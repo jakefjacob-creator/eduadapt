@@ -6,11 +6,12 @@ import RoleSelect from "@/components/RoleSelect";
 export default async function OnboardingPage() {
   const headersList = headers();
   const userId = headersList.get("x-user-id");
+  const accessToken = headersList.get("x-access-token");
 
   if (!userId) redirect("/sign-in");
 
   // Already onboarded? Straight to the dashboard.
-  const user = await getDbUser(userId);
+  const user = await getDbUser(userId, accessToken ?? undefined);
   if (user) redirect("/dashboard");
 
   return (
